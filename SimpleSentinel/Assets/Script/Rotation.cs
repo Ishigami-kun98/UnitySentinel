@@ -17,6 +17,11 @@ public class Rotation : MonoBehaviour
     public GameObject player;
     public bool findPlayer;
     bool gibsec = true;
+    public float radius;
+    [Range (0, 360)]
+    public float angle;
+    public LayerMask obstacles;
+    public LayerMask playerMask;
     
     //current adding
     
@@ -31,20 +36,35 @@ public class Rotation : MonoBehaviour
     }
 
     bool isVisible(Camera c, GameObject target){
-        var planes = GeometryUtility.CalculateFrustumPlanes(c);
+        Collider[] collidersRange = Physics.OverlapSphere(transform.position, radius, playerMask);
+        if(collidersRange.Length != 0){
+            Transform targett = collidersRange[0].transform;
+            Vector3 directionTarget = (targett.position - transform.position).normalized;
+            if(Vector3.Angle(transform.forward, directionTarget) < angle/2){
+                float distance = Vector3.Distance(transform.position, targett.position);
+                if(!Physics.Raycast(transform.position, directionTarget, distance, obstacles)){
+                    return true;
+                }else return false;
+            }else return false;
+        
+        }else return false;
+        /*var planes = GeometryUtility.CalculateFrustumPlanes(c);
         var point = target.transform.position;
         foreach(var plane in planes){
+            
             if(plane.GetDistanceToPoint(point) < 0){
                 return false;
             }
         }
-        return true;
+        return true;*/
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(isVisible(sentinelCamera, player)){
+        bool check = isVisible(sentinelCamera, player);
+        Debug.Log(check);
+        if(check){
             findPlayer = true;
             FindPlayer();
         }
