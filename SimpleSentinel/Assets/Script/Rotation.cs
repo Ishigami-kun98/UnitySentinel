@@ -10,6 +10,7 @@ public class Rotation : MonoBehaviour
     public Color originalColor;
     public Color findColor;
     public Light findYouLight;
+    public float minimumDistance = 20f;
     
     //Camera setup
     public Camera sentinelCamera;
@@ -24,7 +25,7 @@ public class Rotation : MonoBehaviour
     public LayerMask playerMask;
     
     //current adding
-    
+    Vector3 playerPos;
     
     // Start is called before the first frame update
     void Start()
@@ -33,9 +34,13 @@ public class Rotation : MonoBehaviour
         originalColor = findYouLight.color;
         
         findPlayer = false;
+        StartCoroutine(alternativeUpdate());
     }
 
     bool isVisible(Camera c, GameObject target){
+        if(Vector3.Distance(target.transform.position, this.transform.position) < minimumDistance){
+            return true;
+        }
         Collider[] collidersRange = Physics.OverlapSphere(transform.position, radius, playerMask);
         if(collidersRange.Length != 0){
             Transform targett = collidersRange[0].transform;
@@ -59,16 +64,29 @@ public class Rotation : MonoBehaviour
         return true;*/
     }
 
+    IEnumerator alternativeUpdate(){
+       
+        while(true){
+            yield return new WaitForSeconds(1f);
+            bool check = isVisible(sentinelCamera, player);
+            if(check){
+                
+                playerPos = player.transform.position;
+                transform.LookAt(playerPos);
+                findPlayer = true;
+                FindPlayer();
+            }
+        }   
+    }
+
     // Update is called once per frame
     void Update()
     {
-        bool check = isVisible(sentinelCamera, player);
-        Debug.Log(check);
-        if(check){
-            findPlayer = true;
-            FindPlayer();
+        if(!findPlayer){
+            normal();
+        }else{
+            chasePlayer();
         }
-        transform.RotateAround(patronalObject.transform.position, Vector3.up, rotationSpeed * Time.deltaTime);
     }
 
 
@@ -77,13 +95,26 @@ public class Rotation : MonoBehaviour
         if(findPlayer && gibsec){
             gibsec = false;
             findYouLight.color = findColor;
+            
             StartCoroutine(iFoundThePlayer());
         }
     }
     IEnumerator iFoundThePlayer(){
+        
         yield return new WaitForSeconds(10);
         findYouLight.color = originalColor;
         findPlayer = false;
         gibsec = true;
+    }
+
+    void chasePlayer(){
+        
+        transform.position = Vector3.MoveTowards(transform.position, playerPos, 5 * Time.deltaTime);
+    }
+    void normal(){
+        if(Vector3.Distance(transform.position, patronalObject.position) > 10){
+            transform.position = Vector3.MoveTowards(transform.position, patronalObject.position, rotationSpeed * Time.deltaTime);
+        }
+        transform.RotateAround(patronalObject.position, Vector3.up, rotationSpeed * Time.deltaTime);
     }
 }
